@@ -66,7 +66,7 @@ def solve_puzzle(prompt_text):
             """
             
             response = client.models.generate_content(
-                model='gemini-2.5-flash',
+                model='gemini-1.5-flash',
                 contents=ai_prompt,
             )
             ai_answer = response.text.strip()
