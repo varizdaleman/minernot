@@ -39,6 +39,10 @@ def solve_puzzle(prompt_text):
         
     elif "post-quantum signature" in prompt_lower and "nist in 2024" in prompt_lower:
         return "ml-dsa"
+        
+    # --- TAMBAHAN BARU UNTUK KECCAK256 ---
+    elif "keccak256" in prompt_lower:
+        return "4e03657aea45a94fc7d47ba826c8d6642f1ae33a46f2470fd0215db677317718"
 
     # 2. AUTO AI: Jika bot tidak tahu, lempar ke AI!
     else:
