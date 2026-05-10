@@ -31,12 +31,15 @@ client = genai.Client() # Library baru otomatis mencari GEMINI_API_KEY di enviro
 # ==========================================
 def solve_puzzle(prompt_text):
     prompt_lower = prompt_text.lower()
-    
+
     # 1. HARDCODE: Untuk kriptografi murni
     if "sha-256 hash of the empty string" in prompt_lower and "6 hex" in prompt_lower:
         hash_result = hashlib.sha256(b"").hexdigest()
-        return hash_result[:6] 
+        return hash_result[:6]
         
+    elif "post-quantum signature" in prompt_lower and "nist in 2024" in prompt_lower:
+        return "ml-dsa"
+
     # 2. AUTO AI: Jika bot tidak tahu, lempar ke AI!
     else:
         print(f"[bot] Berpikir menggunakan AI untuk pertanyaan ini...")
@@ -50,9 +53,8 @@ def solve_puzzle(prompt_text):
             Answer:
             """
             
-            # Cara baru memanggil Gemini
             response = client.models.generate_content(
-                model='gemini-2.5-flash', # Menggunakan model terbaru
+                model='gemini-2.5-flash',
                 contents=ai_prompt,
             )
             ai_answer = response.text.strip()
