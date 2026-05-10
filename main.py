@@ -21,13 +21,15 @@ API_HEADERS = {
     "Content-Type": "application/json"
 }
 
-# --- INISIALISASI AI ---
+# --- INISIALISASI AI & MEMORI ---
 client = genai.Client()
+btc_hash_attempt = 0  # Memori untuk Brute-Force Bitcoin Hash
 
 # ==========================================
 # LOGIKA PENYELESAIAN PUZZLE (HYBRID)
 # ==========================================
 def solve_puzzle(prompt_text):
+    global btc_hash_attempt
     prompt_lower = prompt_text.lower()
 
     # 1. HARDCODE: SHA-256 string kosong
@@ -59,18 +61,30 @@ def solve_puzzle(prompt_text):
     elif "hex value of decimal 255" in prompt_lower:
         return "ff"
 
-    # 8. KALKULATOR MATEMATIS: Reverse Bits (Pasti Benar 100%)
+    # 8. KALKULATOR MATEMATIS: Reverse Bits
     elif "reverse the bits of byte" in prompt_lower:
         match = re.search(r'0b([01]+)', prompt_lower)
         if match:
             bin_str = match.group(1)
-            # Membalik urutan teks binernya dari belakang ke depan
+            bin_str = bin_str.zfill(8) # Pastikan genap 8 bit
             reversed_bin = bin_str[::-1]
-            # Mengubahnya menjadi hexadesimal dan memotong '0x' di depan
-            hex_result = hex(int(reversed_bin, 2))[2:]
+            hex_result = f"{int(reversed_bin, 2):02x}"
             return hex_result
 
-    # 9. AUTO AI: Jika bot tidak tahu, lempar ke AI!
+    # 9. BRUTE-FORCE: Bitcoin Block Header Hash
+    elif "hash function does bitcoin use for block headers" in prompt_lower:
+        guesses = [
+            "sha256d",         # Tebakan 1: Singkatan resmi Double SHA-256
+            "sha-256",         # Tebakan 2: Memakai tanda strip
+            "double sha256",   # Tebakan 3: Dieja lengkap
+            "double sha-256"   # Tebakan 4: Dieja lengkap pakai strip
+        ]
+        ans = guesses[btc_hash_attempt % len(guesses)]
+        print(f"[bot] Brute-Force Bitcoin Hash. Mencoba tebakan ke-{btc_hash_attempt + 1}: '{ans}'")
+        btc_hash_attempt += 1 
+        return ans
+
+    # 10. AUTO AI: Jika bot tidak tahu, lempar ke AI!
     else:
         print(f"[bot] Berpikir menggunakan AI untuk pertanyaan ini...")
         try:
