@@ -2,9 +2,11 @@ import requests
 import hashlib
 import time
 import re
+import os
+import google.generativeai as genai  # <-- Tambahan baru
 
 # ==========================================
-# KONFIGURASI SESUAI soul.md
+# KONFIGURASI SESUAI soul.md & AI
 # ==========================================
 AGENT_NAME = "variz"
 WALLET_ADDRESS = "0xe8b85a40c81545fdc607f3ee5efe53fd0ab3dc34"
@@ -19,24 +21,48 @@ API_HEADERS = {
     "Content-Type": "application/json"
 }
 
+# --- KONFIGURASI OTAK AI ---
+# Nanti kita taruh GEMINI_API_KEY di setting Railway
+GEMINI_KEY = os.getenv("GEMINI_API_KEY", "TARUH_API_KEY_GEMINI_KAMU_DISINI_JIKA_TIDAK_PAKAI_RAILWAY_VAR")
+genai.configure(api_key=GEMINI_KEY)
+# Pakai model flash karena paling cepat untuk bot
+ai_model = genai.GenerativeModel('gemini-1.5-flash') 
+
 # ==========================================
-# LOGIKA PENYELESAIAN PUZZLE
+# LOGIKA PENYELESAIAN PUZZLE (HYBRID)
 # ==========================================
 def solve_puzzle(prompt_text):
     prompt_lower = prompt_text.lower()
     
-    # 1. Puzzle: SHA-256 empty string (seperti di log kamu sebelumnya)
+    # 1. HARDCODE: Untuk kriptografi murni (AI kadang salah hash)
     if "sha-256 hash of the empty string" in prompt_lower and "6 hex" in prompt_lower:
         hash_result = hashlib.sha256(b"").hexdigest()
         return hash_result[:6] 
         
-    # [!] KAMU BISA TAMBAHKAN LOGIKA UNTUK PUZZLE LAINNYA DI SINI NANTI
-    
-    return "unknown_answer"
+    # 2. AUTO AI: Jika bot tidak tahu, lempar ke AI!
+    else:
+        print(f"[bot] Berpikir menggunakan AI untuk pertanyaan ini...")
+        try:
+            # Instruksi ketat agar AI hanya menjawab to the point tanpa basa-basi
+            ai_prompt = f"""
+            You are a competitive puzzle solver. Read the following puzzle/trivia question and provide ONLY the direct answer.
+            Do not include any punctuation, explanation, or conversational text. 
+            If the answer is a year, output just the number.
+            
+            Question: "{prompt_text}"
+            Answer:
+            """
+            
+            response = ai_model.generate_content(ai_prompt)
+            ai_answer = response.text.strip()
+            return ai_answer
+            
+        except Exception as e:
+            print(f"[error] Otak AI gagal merespons: {e}")
+            return "unknown_answer"
 
 def normalize_answer(answer):
     """Aturan dari soul.md: lowercase, trimmed, single-spaced"""
-    # Mengubah ke huruf kecil, menghapus spasi awal/akhir, mengubah spasi ganda jadi tunggal
     answer = answer.lower().strip()
     answer = re.sub(r'\s+', ' ', answer)
     return answer
@@ -45,29 +71,25 @@ def normalize_answer(answer):
 # MINING LOOP OTONOM
 # ==========================================
 def run_miner():
-    print(f"🚀 Memulai Agent '{AGENT_NAME}' untuk wallet {WALLET_ADDRESS}...")
-    print("Mempersiapkan quantum mining resistance...\n")
+    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (Gemini)...")
     
     while True:
         try:
-            # --- TAHAP 1: PULL PUZZLE ---
             get_resp = requests.get(URL_GET_PUZZLE, headers=API_HEADERS, timeout=60)
             
-            # Cek Rate Limit (Golden Rule 5)
             if get_resp.status_code == 429:
-                print("[warning] Rate limit (HTTP 429) tercapai saat PULL. Jeda 15 detik...")
+                print("[warning] Rate limit. Jeda 15 detik...")
                 time.sleep(15)
                 continue
                 
             if get_resp.status_code != 200:
-                print(f"[error] Gagal PULL puzzle. HTTP Status: {get_resp.status_code} | Body: {get_resp.text}")
+                print(f"[error] Gagal PULL puzzle. HTTP Status: {get_resp.status_code}")
                 time.sleep(5)
                 continue
 
             data = get_resp.json()
             puzzle = data.get("puzzle")
             
-            # Jika puzzle pool habis (Golden Rule 4)
             if not puzzle:
                 print("[info] Puzzle pool exhausted. Idle for 60 seconds...")
                 time.sleep(60)
@@ -75,15 +97,13 @@ def run_miner():
                 
             p_id = puzzle.get("id")
             p_prompt = puzzle.get("prompt")
-            p_reward = puzzle.get("reward", 500)
-            print(f"\n[puzzle] id={p_id} reward={p_reward} prompt='{p_prompt}'")
+            print(f"\n[puzzle] id={p_id} prompt='{p_prompt}'")
             
-            # --- TAHAP 2: SOLVE PUZZLE ---
+            # --- AI BEKERJA DI SINI ---
             raw_answer = solve_puzzle(p_prompt)
             final_answer = normalize_answer(raw_answer)
-            print(f"[solve] Mempersiapkan jawaban: '{final_answer}'")
+            print(f"[solve] Jawaban ditemukan: '{final_answer}'")
             
-            # --- TAHAP 3: SUBMIT SOLUTION ---
             payload = {
                 "eth_address": WALLET_ADDRESS,
                 "agent_name": AGENT_NAME,
@@ -93,23 +113,16 @@ def run_miner():
             
             post_resp = requests.post(URL_SUBMIT_SOLUTION, json=payload, headers=API_HEADERS, timeout=60)
             
-            # Cek Rate Limit (Golden Rule 5)
             if post_resp.status_code == 429:
-                print("[warning] Rate limit (HTTP 429) tercapai saat SUBMIT. Jeda 15 detik...")
+                print("[warning] Rate limit saat SUBMIT. Jeda 15 detik...")
                 time.sleep(15)
                 continue
                 
             print(f"[submit] status={post_resp.status_code} body={post_resp.text}")
-            
-            # Jeda 2-3 detik agar tidak memicu HTTP 429 terlalu cepat (max 8 req/10s)
             time.sleep(3)
             
-        except requests.exceptions.ReadTimeout:
-            print("[error] Network Timeout. Server terlalu lama merespons. Mencoba lagi...")
-            time.sleep(5)
-            
         except Exception as e:
-            print(f"[error] Terjadi kesalahan tak terduga: {e}")
+            print(f"[error] Terjadi kesalahan: {e}")
             time.sleep(5)
 
 if __name__ == "__main__":
