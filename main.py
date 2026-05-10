@@ -3,7 +3,7 @@ import hashlib
 import time
 import re
 import os
-from google import genai
+from groq import Groq
 
 # ==========================================
 # KONFIGURASI AGENT & API
@@ -21,8 +21,10 @@ API_HEADERS = {
     "Content-Type": "application/json"
 }
 
-# --- INISIALISASI AI & MEMORI ---
-client = genai.Client()
+# --- INISIALISASI GROQ AI ---
+# Mengambil API Key dari Variables di Railway
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
 btc_hash_attempt = 0  # Memori untuk Brute-Force Bitcoin Hash
 
 # ==========================================
@@ -74,34 +76,34 @@ def solve_puzzle(prompt_text):
     # 9. BRUTE-FORCE: Bitcoin Block Header Hash
     elif "hash function does bitcoin use for block headers" in prompt_lower:
         guesses = [
-            "sha256d",         # Tebakan 1: Singkatan resmi Double SHA-256
-            "sha-256",         # Tebakan 2: Memakai tanda strip
-            "double sha256",   # Tebakan 3: Dieja lengkap
-            "double sha-256"   # Tebakan 4: Dieja lengkap pakai strip
+            "sha256d",         
+            "sha-256",         
+            "double sha256",   
+            "double sha-256"   
         ]
         ans = guesses[btc_hash_attempt % len(guesses)]
         print(f"[bot] Brute-Force Bitcoin Hash. Mencoba tebakan ke-{btc_hash_attempt + 1}: '{ans}'")
         btc_hash_attempt += 1 
         return ans
 
-    # 10. AUTO AI: Jika bot tidak tahu, lempar ke AI!
+    # 10. AUTO AI: Menggunakan Llama-3 8B dari Groq (Super Cepat!)
     else:
-        print(f"[bot] Berpikir menggunakan AI untuk pertanyaan ini...")
+        print(f"[bot] Berpikir menggunakan AI (Groq - Llama 3) untuk pertanyaan ini...")
         try:
-            ai_prompt = f"""
-            You are a competitive puzzle solver. Read the following puzzle/trivia question and provide ONLY the direct answer.
-            Do not include any punctuation, explanation, or conversational text. 
-            If the answer is a year, output just the number.
-            
-            Question: "{prompt_text}"
-            Answer:
-            """
-            
-            response = client.models.generate_content(
-                model='gemini-2.5-flash-lite', 
-                contents=ai_prompt,
+            response = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a competitive puzzle solver. Read the following puzzle/trivia question and provide ONLY the direct answer. Do not include any punctuation, explanation, or conversational text. If the answer is a year, output just the number."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt_text,
+                    }
+                ],
+                model="llama3-8b-8192", # Model Meta Llama 3 yang gesit dan pintar
             )
-            ai_answer = response.text.strip()
+            ai_answer = response.choices[0].message.content.strip()
             return ai_answer
             
         except Exception as e:
@@ -117,7 +119,7 @@ def normalize_answer(answer):
 # MINING LOOP OTONOM
 # ==========================================
 def run_miner():
-    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (Gemini 2.5 Flash Lite)...")
+    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (Groq - Llama 3)...")
     
     while True:
         try:
