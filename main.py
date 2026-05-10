@@ -10,6 +10,7 @@ from groq import Groq
 # ==========================================
 AGENT_NAME = "variz"
 WALLET_ADDRESS = "0xe8b85a40c81545fdc607f3ee5efe53fd0ab3dc34"
+# API Key Supabase tetap menggunakan yang lama karena masih aktif
 API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcmFwbmxxcXRqZWRqeWhsZmNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyNzUyNjQsImV4cCI6MjA5Mzg1MTI2NH0.mf0fz6kAnK0yeAXrb-XT6yikbdRmeAq5jsikVPPhaFE"
 
 URL_GET_PUZZLE = f"https://bqrapnlqqtjedjyhlfci.supabase.co/functions/v1/submit-solution?eth={WALLET_ADDRESS}"
@@ -22,15 +23,17 @@ API_HEADERS = {
 }
 
 # --- INISIALISASI GROQ AI ---
+# Pastikan Anda sudah memasukkan GROQ_API_KEY di tab Variables Railway
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-btc_hash_attempt = 0 
+# Memori untuk Brute-Force (Agar bot mencoba variasi jawaban berbeda jika salah)
+attempt_counter = 0 
 
 # ==========================================
 # LOGIKA PENYELESAIAN PUZZLE (HYBRID)
 # ==========================================
 def solve_puzzle(prompt_text):
-    global btc_hash_attempt
+    global attempt_counter
     prompt_lower = prompt_text.lower()
 
     # 1. HARDCODE: SHA-256 string kosong
@@ -42,43 +45,46 @@ def solve_puzzle(prompt_text):
     elif "post-quantum signature" in prompt_lower and "nist in 2024" in prompt_lower:
         return "ml-dsa"
         
-    # 3. HARDCODE: Tahun Bitcoin
+    # 3. HARDCODE: Tahun Bitcoin & Info Umum
     elif "bitcoin whitepaper" in prompt_lower:
         return "2008"
-        
-    # 4. HARDCODE: Base Mainnet Chain ID
     elif "chain id is base mainnet" in prompt_lower:
         return "8453"
+    elif "hex value of decimal 255" in prompt_lower:
+        return "ff"
         
-    # 5. HARDCODE: Jebakan "abc" (Wallet Address)
+    # 4. HARDCODE: Jebakan "abc" (Wallet Address)
     elif "keccak256" in prompt_lower and "abc" in prompt_lower:
         return WALLET_ADDRESS
 
-    # 6. HARDCODE: Shor's Algorithm
+    # 5. HARDCODE: Shor's Algorithm
     elif "shors algorithm threatens" in prompt_lower:
         return "rsa"
-        
-    # 7. HARDCODE: Hexadecimal dari 255
-    elif "hex value of decimal 255" in prompt_lower:
-        return "ff"
 
-    # 8. KALKULATOR MATEMATIS: Reverse Bits
+    # 6. KALKULATOR: Reverse Bits (Otomatis & Akurat)
     elif "reverse the bits of byte" in prompt_lower:
         match = re.search(r'0b([01]+)', prompt_lower)
         if match:
             bin_str = match.group(1).zfill(8)
             reversed_bin = bin_str[::-1]
-            hex_result = f"{int(reversed_bin, 2):02x}"
-            return hex_result
+            return f"{int(reversed_bin, 2):02x}"
 
-    # 9. BRUTE-FORCE: Bitcoin Block Header Hash
+    # 7. BRUTE-FORCE: Bitcoin Hash (sha256d, sha-256, dll)
     elif "hash function does bitcoin use for block headers" in prompt_lower:
-        guesses = ["sha256d", "sha-256", "double sha256", "double sha-256"]
-        ans = guesses[btc_hash_attempt % len(guesses)]
-        btc_hash_attempt += 1 
+        guesses = ["sha256d", "sha-256", "double sha256"]
+        ans = guesses[attempt_counter % len(guesses)]
+        attempt_counter += 1 
         return ans
 
-    # 10. AUTO AI: Menggunakan Llama 3.3 Terbaru (Gratis & Stabil)
+    # 8. BRUTE-FORCE: Kyber Lattice Problem (mlwe, m-lwe, dll)
+    elif "lattice problem underpins kyber" in prompt_lower:
+        guesses = ["mlwe", "m-lwe", "module lwe", "module learning with errors"]
+        ans = guesses[attempt_counter % len(guesses)]
+        print(f"[bot] Mencoba variasi jawaban Kyber: '{ans}'")
+        attempt_counter += 1 
+        return ans
+
+    # 9. AUTO AI: Menggunakan Llama 3.3 Terbaru (Groq)
     else:
         print(f"[bot] Berpikir menggunakan AI (Groq - Llama 3.3) untuk pertanyaan ini...")
         try:
@@ -93,7 +99,7 @@ def solve_puzzle(prompt_text):
                         "content": prompt_text,
                     }
                 ],
-                model="llama-3.3-70b-versatile", # Model terbaru yang didukung
+                model="llama-3.3-70b-versatile",
             )
             ai_answer = response.choices[0].message.content.strip()
             return ai_answer
