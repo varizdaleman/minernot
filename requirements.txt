@@ -1,3 +1,2 @@
 requests==2.31.0
-google-genai
-web3
+groq
