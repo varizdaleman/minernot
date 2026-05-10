@@ -1,24 +1,21 @@
 import requests
 import hashlib
 import time
-import os
+import re
 
 # ==========================================
-# KONFIGURASI AGENT & WALLET
+# KONFIGURASI SESUAI soul.md
 # ==========================================
 AGENT_NAME = "variz"
 WALLET_ADDRESS = "0xe8b85a40c81545fdc607f3ee5efe53fd0ab3dc34"
+API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcmFwbmxxcXRqZWRqeWhsZmNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyNzUyNjQsImV4cCI6MjA5Mzg1MTI2NH0.mf0fz6kAnK0yeAXrb-XT6yikbdRmeAq5jsikVPPhaFE"
 
-# ==========================================
-# KONFIGURASI API (Ubah sesuai endpoint aslimu)
-# ==========================================
-# Ganti dengan URL endpoint untuk mengambil dan mengirim puzzle
-API_URL_GET_PUZZLE = os.getenv("API_URL_GET_PUZZLE", "https://bqrapnlqqtjedjyhlfci.supabase.co/rest/v1/puzzles") 
-API_URL_SUBMIT_PUZZLE = os.getenv("API_URL_SUBMIT_PUZZLE", "https://bqrapnlqqtjedjyhlfci.supabase.co/rest/v1/submit")
+URL_GET_PUZZLE = f"https://bqrapnlqqtjedjyhlfci.supabase.co/functions/v1/submit-solution?eth={WALLET_ADDRESS}"
+URL_SUBMIT_SOLUTION = "https://bqrapnlqqtjedjyhlfci.supabase.co/functions/v1/submit-solution"
 
-# Ganti dengan API Key/Bearer Token kamu jika ada
 API_HEADERS = {
-    "Authorization": f"Bearer {os.getenv('SUPABASE_KEY', 'TOKEN_KAMU_DI_SINI')}",
+    "apikey": API_KEY,
+    "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json"
 }
 
@@ -26,76 +23,93 @@ API_HEADERS = {
 # LOGIKA PENYELESAIAN PUZZLE
 # ==========================================
 def solve_puzzle(prompt_text):
-    """Fungsi untuk membaca teks puzzle dan memberikan jawaban otomatis."""
-    prompt_text = prompt_text.lower()
+    prompt_lower = prompt_text.lower()
     
-    # Menjawab puzzle: "SHA-256 hash of the empty string starts with which 6 hex characters?"
-    if "sha-256" in prompt_text and "empty string" in prompt_text and "6 hex" in prompt_text:
-        # Menghitung hash dari string kosong
+    # 1. Puzzle: SHA-256 empty string (seperti di log kamu sebelumnya)
+    if "sha-256 hash of the empty string" in prompt_lower and "6 hex" in prompt_lower:
         hash_result = hashlib.sha256(b"").hexdigest()
-        answer = hash_result[:6] # Hasilnya: e3b0c4
-        return answer
+        return hash_result[:6] 
         
-    # Kamu bisa menambahkan logika elif di sini jika ada puzzle jenis baru
-    # elif "pertanyaan_baru" in prompt_text:
-    #     return "jawaban_baru"
+    # [!] KAMU BISA TAMBAHKAN LOGIKA UNTUK PUZZLE LAINNYA DI SINI NANTI
     
-    return "unknown"
+    return "unknown_answer"
+
+def normalize_answer(answer):
+    """Aturan dari soul.md: lowercase, trimmed, single-spaced"""
+    # Mengubah ke huruf kecil, menghapus spasi awal/akhir, mengubah spasi ganda jadi tunggal
+    answer = answer.lower().strip()
+    answer = re.sub(r'\s+', ' ', answer)
+    return answer
 
 # ==========================================
-# MINING LOOP
+# MINING LOOP OTONOM
 # ==========================================
 def run_miner():
-    print(f"🚀 Memulai Miner Agent '{AGENT_NAME}' untuk wallet {WALLET_ADDRESS}...")
+    print(f"🚀 Memulai Agent '{AGENT_NAME}' untuk wallet {WALLET_ADDRESS}...")
+    print("Mempersiapkan quantum mining resistance...\n")
     
     while True:
         try:
-            # 1. MENGAMBIL PUZZLE (Timeout diset 60 detik agar tidak RTO)
-            response = requests.get(API_URL_GET_PUZZLE, headers=API_HEADERS, timeout=60)
+            # --- TAHAP 1: PULL PUZZLE ---
+            get_resp = requests.get(URL_GET_PUZZLE, headers=API_HEADERS, timeout=60)
             
-            if response.status_code == 200:
-                data = response.json()
+            # Cek Rate Limit (Golden Rule 5)
+            if get_resp.status_code == 429:
+                print("[warning] Rate limit (HTTP 429) tercapai saat PULL. Jeda 15 detik...")
+                time.sleep(15)
+                continue
                 
-                # Sesuaikan cara mengambil ID dan prompt dari format JSON aslimu
-                puzzle_id = data.get("id")
-                prompt = data.get("prompt", "")
+            if get_resp.status_code != 200:
+                print(f"[error] Gagal PULL puzzle. HTTP Status: {get_resp.status_code} | Body: {get_resp.text}")
+                time.sleep(5)
+                continue
+
+            data = get_resp.json()
+            puzzle = data.get("puzzle")
+            
+            # Jika puzzle pool habis (Golden Rule 4)
+            if not puzzle:
+                print("[info] Puzzle pool exhausted. Idle for 60 seconds...")
+                time.sleep(60)
+                continue
                 
-                if puzzle_id and prompt:
-                    print(f"\n[puzzle] id={puzzle_id} prompt='{prompt}'")
-                    
-                    # 2. MENYELESAIKAN PUZZLE
-                    answer = solve_puzzle(prompt)
-                    
-                    # 3. MENGIRIM JAWABAN
-                    submit_payload = {
-                        "agent": AGENT_NAME,
-                        "wallet": WALLET_ADDRESS,
-                        "id": puzzle_id, 
-                        "answer": answer
-                    }
-                    
-                    submit_response = requests.post(API_URL_SUBMIT_PUZZLE, json=submit_payload, headers=API_HEADERS, timeout=60)
-                    print(f"[submit] attempt=1 status={submit_response.status_code} body={submit_response.text}")
-                else:
-                    print("[info] Tidak ada puzzle aktif saat ini.")
-            else:
-                print(f"[error] Gagal mengambil puzzle. Status: {response.status_code}")
+            p_id = puzzle.get("id")
+            p_prompt = puzzle.get("prompt")
+            p_reward = puzzle.get("reward", 500)
+            print(f"\n[puzzle] id={p_id} reward={p_reward} prompt='{p_prompt}'")
+            
+            # --- TAHAP 2: SOLVE PUZZLE ---
+            raw_answer = solve_puzzle(p_prompt)
+            final_answer = normalize_answer(raw_answer)
+            print(f"[solve] Mempersiapkan jawaban: '{final_answer}'")
+            
+            # --- TAHAP 3: SUBMIT SOLUTION ---
+            payload = {
+                "eth_address": WALLET_ADDRESS,
+                "agent_name": AGENT_NAME,
+                "puzzle_id": p_id,
+                "answer": final_answer
+            }
+            
+            post_resp = requests.post(URL_SUBMIT_SOLUTION, json=payload, headers=API_HEADERS, timeout=60)
+            
+            # Cek Rate Limit (Golden Rule 5)
+            if post_resp.status_code == 429:
+                print("[warning] Rate limit (HTTP 429) tercapai saat SUBMIT. Jeda 15 detik...")
+                time.sleep(15)
+                continue
                 
-            # Jeda agar tidak terkena rate limit dari server
-            time.sleep(20)
+            print(f"[submit] status={post_resp.status_code} body={post_resp.text}")
+            
+            # Jeda 2-3 detik agar tidak memicu HTTP 429 terlalu cepat (max 8 req/10s)
+            time.sleep(3)
             
         except requests.exceptions.ReadTimeout:
-            # Penanganan khusus jika server supabase lambat merespons
-            print(f"[error] Network error: HTTPSConnectionPool Read timed out. Mencoba lagi...")
-            time.sleep(5)
-            
-        except requests.exceptions.RequestException as e:
-            # Penanganan error jaringan lainnya
-            print(f"[error] Network error: {e}")
+            print("[error] Network Timeout. Server terlalu lama merespons. Mencoba lagi...")
             time.sleep(5)
             
         except Exception as e:
-            print(f"[error] Terjadi kesalahan sistem: {e}")
+            print(f"[error] Terjadi kesalahan tak terduga: {e}")
             time.sleep(5)
 
 if __name__ == "__main__":
