@@ -59,7 +59,17 @@ def solve_puzzle(prompt_text):
     elif "hex value of decimal 255" in prompt_lower:
         return "ff"
 
-    # 8. AUTO AI: Jika bot tidak tahu, lempar ke AI!
+    # 8. KALKULATOR MATEMATIS: Reverse Bits (Pasti Benar 100% dengan 0x)
+    elif "reverse the bits of byte" in prompt_lower:
+        match = re.search(r'0b([01]+)', prompt_lower)
+        if match:
+            bin_str = match.group(1)
+            reversed_bin = bin_str[::-1]
+            # Biarkan awalan 0x tetap ada
+            hex_result = hex(int(reversed_bin, 2))
+            return hex_result
+
+    # 9. AUTO AI: Jika bot tidak tahu, lempar ke AI!
     else:
         print(f"[bot] Berpikir menggunakan AI untuk pertanyaan ini...")
         try:
@@ -72,7 +82,6 @@ def solve_puzzle(prompt_text):
             Answer:
             """
             
-            # MENGGUNAKAN MODEL LITE TERBARU (Gratis dan Kuota Raksasa!)
             response = client.models.generate_content(
                 model='gemini-2.5-flash-lite', 
                 contents=ai_prompt,
