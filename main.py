@@ -3,9 +3,9 @@ import hashlib
 import time
 import re
 import os
-from google import genai # <-- Menggunakan library baru
+from google import genai
 from google.genai import types
-from web3 import Web3
+from web3 import Web3  # <-- MESIN ETHEREUM BARU KITA
 
 # ==========================================
 # KONFIGURASI SESUAI soul.md & AI
@@ -23,9 +23,7 @@ API_HEADERS = {
     "Content-Type": "application/json"
 }
 
-# --- KONFIGURASI OTAK AI BARU ---
-# Pastikan GEMINI_API_KEY sudah terpasang di Variables Railway
-client = genai.Client() # Library baru otomatis mencari GEMINI_API_KEY di environment
+client = genai.Client()
 
 # ==========================================
 # LOGIKA PENYELESAIAN PUZZLE (HYBRID)
@@ -33,7 +31,6 @@ client = genai.Client() # Library baru otomatis mencari GEMINI_API_KEY di enviro
 def solve_puzzle(prompt_text):
     prompt_lower = prompt_text.lower()
 
-    # 1. HARDCODE: Untuk kriptografi murni
     if "sha-256 hash of the empty string" in prompt_lower and "6 hex" in prompt_lower:
         hash_result = hashlib.sha256(b"").hexdigest()
         return hash_result[:6]
@@ -41,9 +38,26 @@ def solve_puzzle(prompt_text):
     elif "post-quantum signature" in prompt_lower and "nist in 2024" in prompt_lower:
         return "ml-dsa"
         
-    # --- TAMBAHAN BARU UNTUK KECCAK256 ---
+    # --- WEB3 NATIVE HASHING ---
     elif "keccak256" in prompt_lower:
-        return "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
+        # Mesin Web3 akan mengekstrak apa pun yang ada di dalam kurung keccak256(...)
+        match = re.search(r'keccak256\((.*?)\)', prompt_text)
+        if match:
+            raw_text = match.group(1)
+            
+            # Membedah jebakan tanda kutip ganda (""abc"") dari server
+            if raw_text.startswith('""') and raw_text.endswith('""'):
+                clean_text = raw_text[1:-1] # Mengambil literal '"abc"'
+            else:
+                clean_text = raw_text.strip('"').strip("'") # Mengambil literal 'abc'
+            
+            print(f"[bot] Menghitung keccak256 Web3 untuk: {clean_text}")
+            
+            # Hitung hash menggunakan mesin Web3 yang akurat 100%
+            hash_bytes = Web3.keccak(text=clean_text)
+            return hash_bytes.hex()[2:]
+            
+        return "unknown_answer"
 
     # 2. AUTO AI: Jika bot tidak tahu, lempar ke AI!
     else:
@@ -78,7 +92,7 @@ def normalize_answer(answer):
 # MINING LOOP OTONOM
 # ==========================================
 def run_miner():
-    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (GenAI terbaru)...")
+    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (GenAI & Web3)...")
     
     while True:
         try:
