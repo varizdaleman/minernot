@@ -22,10 +22,9 @@ API_HEADERS = {
 }
 
 # --- INISIALISASI GROQ AI ---
-# Mengambil API Key dari Variables di Railway
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-btc_hash_attempt = 0  # Memori untuk Brute-Force Bitcoin Hash
+btc_hash_attempt = 0 
 
 # ==========================================
 # LOGIKA PENYELESAIAN PUZZLE (HYBRID)
@@ -67,28 +66,21 @@ def solve_puzzle(prompt_text):
     elif "reverse the bits of byte" in prompt_lower:
         match = re.search(r'0b([01]+)', prompt_lower)
         if match:
-            bin_str = match.group(1)
-            bin_str = bin_str.zfill(8) # Pastikan genap 8 bit
+            bin_str = match.group(1).zfill(8)
             reversed_bin = bin_str[::-1]
             hex_result = f"{int(reversed_bin, 2):02x}"
             return hex_result
 
     # 9. BRUTE-FORCE: Bitcoin Block Header Hash
     elif "hash function does bitcoin use for block headers" in prompt_lower:
-        guesses = [
-            "sha256d",         
-            "sha-256",         
-            "double sha256",   
-            "double sha-256"   
-        ]
+        guesses = ["sha256d", "sha-256", "double sha256", "double sha-256"]
         ans = guesses[btc_hash_attempt % len(guesses)]
-        print(f"[bot] Brute-Force Bitcoin Hash. Mencoba tebakan ke-{btc_hash_attempt + 1}: '{ans}'")
         btc_hash_attempt += 1 
         return ans
 
-    # 10. AUTO AI: Menggunakan Llama-3 8B dari Groq (Super Cepat!)
+    # 10. AUTO AI: Menggunakan Llama 3.3 Terbaru (Gratis & Stabil)
     else:
-        print(f"[bot] Berpikir menggunakan AI (Groq - Llama 3) untuk pertanyaan ini...")
+        print(f"[bot] Berpikir menggunakan AI (Groq - Llama 3.3) untuk pertanyaan ini...")
         try:
             response = client.chat.completions.create(
                 messages=[
@@ -101,7 +93,7 @@ def solve_puzzle(prompt_text):
                         "content": prompt_text,
                     }
                 ],
-                model="llama3-8b-8192", # Model Meta Llama 3 yang gesit dan pintar
+                model="llama-3.3-70b-versatile", # Model terbaru yang didukung
             )
             ai_answer = response.choices[0].message.content.strip()
             return ai_answer
@@ -119,7 +111,7 @@ def normalize_answer(answer):
 # MINING LOOP OTONOM
 # ==========================================
 def run_miner():
-    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (Groq - Llama 3)...")
+    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (Groq - Llama 3.3)...")
     
     while True:
         try:
@@ -159,12 +151,6 @@ def run_miner():
             }
             
             post_resp = requests.post(URL_SUBMIT_SOLUTION, json=payload, headers=API_HEADERS, timeout=60)
-            
-            if post_resp.status_code == 429:
-                print("[warning] Rate limit saat SUBMIT. Jeda 15 detik...")
-                time.sleep(15)
-                continue
-                
             print(f"[submit] status={post_resp.status_code} body={post_resp.text}")
             time.sleep(3)
             
