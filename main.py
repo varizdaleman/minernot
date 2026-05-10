@@ -70,7 +70,7 @@ def solve_puzzle(prompt_text):
             
             # MENGGUNAKAN MODEL STABIL TERBARU DENGAN LIMIT BESAR
             response = client.models.generate_content(
-                model='gemini-2.0-flash', 
+                model='gemini-1.5-flash-8b', 
                 contents=ai_prompt,
             )
             ai_answer = response.text.strip()
