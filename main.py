@@ -32,8 +32,15 @@ def solve_puzzle(prompt_text):
     global attempt_counter
     prompt_lower = prompt_text.lower()
 
-    # 1. HARDCODE DASAR
-    if "sha-256 hash of the empty string" in prompt_lower:
+    # 1. THREAT MODELING (NK)
+    if "nk stand for" in prompt_lower and "threat model" in prompt_lower:
+        guesses = ["nation state", "nation-state", "north korea"]
+        ans = guesses[attempt_counter % len(guesses)]
+        attempt_counter += 1
+        return ans
+
+    # 2. HARDCODE DASAR
+    elif "sha-256 hash of the empty string" in prompt_lower:
         return hashlib.sha256(b"").hexdigest()[:6]
     elif "bitcoin whitepaper" in prompt_lower:
         return "2008"
@@ -46,35 +53,35 @@ def solve_puzzle(prompt_text):
     elif "shors algorithm threatens" in prompt_lower:
         return "rsa"
 
-    # 2. AES-128 & GROVER (Pasti Benar)
+    # 3. AES-128 & GROVER
     elif "aes-128" in prompt_lower and "grover" in prompt_lower:
-        guesses = ["2^64", "o(2^64)", "64"]
+        guesses = ["2^64", "64"]
         ans = guesses[attempt_counter % len(guesses)]
         attempt_counter += 1
         return ans
 
-    # 3. HD WALLETS (BIP-32)
+    # 4. HD WALLETS (BIP-32)
     elif "hierarchical deterministic wallets" in prompt_lower:
         guesses = ["32", "bip32"]
         ans = guesses[attempt_counter % len(guesses)]
         attempt_counter += 1
         return ans
 
-    # 4. KYBER / LATTICE
+    # 5. KYBER / LATTICE
     elif "lattice problem underpins kyber" in prompt_lower:
         guesses = ["mlwe", "m-lwe"]
         ans = guesses[attempt_counter % len(guesses)]
         attempt_counter += 1 
         return ans
 
-    # 5. BITCOIN HASH
+    # 6. BITCOIN HASH
     elif "hash function does bitcoin use for block headers" in prompt_lower:
         guesses = ["sha256d", "sha256"]
         ans = guesses[attempt_counter % len(guesses)]
         attempt_counter += 1 
         return ans
 
-    # 6. KALKULATOR: Reverse Bits
+    # 7. KALKULATOR: Reverse Bits
     elif "reverse the bits of byte" in prompt_lower:
         match = re.search(r'0b([01]+)', prompt_lower)
         if match:
@@ -82,13 +89,13 @@ def solve_puzzle(prompt_text):
             reversed_bin = bin_str[::-1]
             return f"{int(reversed_bin, 2):02x}"
 
-    # 7. AUTO AI: Llama 3.3 (Dibersihkan dari instruksi BIP)
+    # 8. AUTO AI
     else:
         print(f"[bot] Berpikir menggunakan AI...")
         try:
             response = client.chat.completions.create(
                 messages=[
-                    {"role": "system", "content": "You are a crypto puzzle solver. Answer ONLY with the direct value (e.g., '2^64', '8453', 'rsa'). No extra words, no explanation, no punctuation."},
+                    {"role": "system", "content": "You are a professional cybersecurity and crypto puzzle solver. Answer ONLY with the direct value. No extra words, no periods."},
                     {"role": "user", "content": prompt_text}
                 ],
                 model="llama-3.3-70b-versatile",
@@ -98,13 +105,13 @@ def solve_puzzle(prompt_text):
             return "unknown"
 
 def normalize_answer(answer):
-    return answer.lower().strip().replace("o(", "").replace(")", "")
+    return answer.lower().strip()
 
 # ==========================================
 # MINING LOOP
 # ==========================================
 def run_miner():
-    print(f"🚀 Agent '{AGENT_NAME}' aktif. Menyerang AES-128 Grover...")
+    print(f"🚀 Agent '{AGENT_NAME}' aktif. Menyerang Threat Model NK...")
     while True:
         try:
             get_resp = requests.get(URL_GET_PUZZLE, headers=API_HEADERS, timeout=60)
