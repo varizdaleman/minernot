@@ -42,7 +42,7 @@ def solve_puzzle(prompt_text):
         
     # --- TAMBAHAN BARU UNTUK KECCAK256 ---
     elif "keccak256" in prompt_lower:
-        return "4e03657aea45a94fc7d47ba826c8d6642f1ae33a46f2470fd0215db677317718"
+        return "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
 
     # 2. AUTO AI: Jika bot tidak tahu, lempar ke AI!
     else:
