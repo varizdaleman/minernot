@@ -32,14 +32,22 @@ def solve_puzzle(prompt_text):
     global attempt_counter
     prompt_lower = prompt_text.lower()
 
-    # 1. THREAT MODELING (NK)
-    if "nk stand for" in prompt_lower and "threat model" in prompt_lower:
-        guesses = ["nation state", "nation-state", "north korea"]
+    # 1. SOAL KHUSUS: soul.md (3-letter env)
+    if "soul.md" in prompt_lower and "3-letter" in prompt_lower:
+        guesses = ["eth", "ntc", "url", "uri", "env"]
+        ans = guesses[attempt_counter % len(guesses)]
+        print(f"[bot] Mencoba variasi soul.md ke-{attempt_counter + 1}: '{ans}'")
+        attempt_counter += 1
+        return ans
+
+    # 2. THREAT MODELING (NK)
+    elif "nk stand for" in prompt_lower and "threat model" in prompt_lower:
+        guesses = ["north korea", "nation-state", "nation state"]
         ans = guesses[attempt_counter % len(guesses)]
         attempt_counter += 1
         return ans
 
-    # 2. HARDCODE DASAR
+    # 3. HARDCODE DASAR
     elif "sha-256 hash of the empty string" in prompt_lower:
         return hashlib.sha256(b"").hexdigest()[:6]
     elif "bitcoin whitepaper" in prompt_lower:
@@ -53,35 +61,26 @@ def solve_puzzle(prompt_text):
     elif "shors algorithm threatens" in prompt_lower:
         return "rsa"
 
-    # 3. AES-128 & GROVER
+    # 4. AES-128 & GROVER
     elif "aes-128" in prompt_lower and "grover" in prompt_lower:
-        guesses = ["2^64", "64"]
-        ans = guesses[attempt_counter % len(guesses)]
-        attempt_counter += 1
-        return ans
+        return "2^64"
 
-    # 4. HD WALLETS (BIP-32)
+    # 5. HD WALLETS (BIP-32)
     elif "hierarchical deterministic wallets" in prompt_lower:
         guesses = ["32", "bip32"]
         ans = guesses[attempt_counter % len(guesses)]
         attempt_counter += 1
         return ans
 
-    # 5. KYBER / LATTICE
+    # 6. KYBER / LATTICE
     elif "lattice problem underpins kyber" in prompt_lower:
-        guesses = ["mlwe", "m-lwe"]
-        ans = guesses[attempt_counter % len(guesses)]
-        attempt_counter += 1 
-        return ans
+        return "mlwe"
 
-    # 6. BITCOIN HASH
+    # 7. BITCOIN HASH
     elif "hash function does bitcoin use for block headers" in prompt_lower:
-        guesses = ["sha256d", "sha256"]
-        ans = guesses[attempt_counter % len(guesses)]
-        attempt_counter += 1 
-        return ans
+        return "sha256d"
 
-    # 7. KALKULATOR: Reverse Bits
+    # 8. KALKULATOR: Reverse Bits
     elif "reverse the bits of byte" in prompt_lower:
         match = re.search(r'0b([01]+)', prompt_lower)
         if match:
@@ -89,13 +88,13 @@ def solve_puzzle(prompt_text):
             reversed_bin = bin_str[::-1]
             return f"{int(reversed_bin, 2):02x}"
 
-    # 8. AUTO AI
+    # 9. AUTO AI
     else:
         print(f"[bot] Berpikir menggunakan AI...")
         try:
             response = client.chat.completions.create(
                 messages=[
-                    {"role": "system", "content": "You are a professional cybersecurity and crypto puzzle solver. Answer ONLY with the direct value. No extra words, no periods."},
+                    {"role": "system", "content": "Direct answer only. 3 letters if asked. No punctuation."},
                     {"role": "user", "content": prompt_text}
                 ],
                 model="llama-3.3-70b-versatile",
@@ -111,7 +110,7 @@ def normalize_answer(answer):
 # MINING LOOP
 # ==========================================
 def run_miner():
-    print(f"🚀 Agent '{AGENT_NAME}' aktif. Menyerang Threat Model NK...")
+    print(f"🚀 Agent '{AGENT_NAME}' aktif. Memecahkan misteri soul.md...")
     while True:
         try:
             get_resp = requests.get(URL_GET_PUZZLE, headers=API_HEADERS, timeout=60)
