@@ -5,6 +5,7 @@ import re
 import os
 from google import genai # <-- Menggunakan library baru
 from google.genai import types
+from web3 import Web3
 
 # ==========================================
 # KONFIGURASI SESUAI soul.md & AI
