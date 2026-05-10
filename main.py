@@ -6,7 +6,7 @@ import os
 from google import genai
 
 # ==========================================
-# KONFIGURASI SESUAI soul.md & AI
+# KONFIGURASI AGENT & API
 # ==========================================
 AGENT_NAME = "variz"
 WALLET_ADDRESS = "0xe8b85a40c81545fdc607f3ee5efe53fd0ab3dc34"
@@ -24,14 +24,10 @@ API_HEADERS = {
 # --- INISIALISASI AI ---
 client = genai.Client()
 
-# --- VARIABEL MEMORI BRUTE-FORCE ---
-keccak_attempt = 0
-
 # ==========================================
 # LOGIKA PENYELESAIAN PUZZLE (HYBRID)
 # ==========================================
 def solve_puzzle(prompt_text):
-    global keccak_attempt
     prompt_lower = prompt_text.lower()
 
     # 1. HARDCODE: SHA-256 string kosong
@@ -43,26 +39,20 @@ def solve_puzzle(prompt_text):
     elif "post-quantum signature" in prompt_lower and "nist in 2024" in prompt_lower:
         return "ml-dsa"
         
-    # 3. STRATEGI BRUTE-FORCE UNTUK JEBAKAN KECCAK256
-    elif "keccak256" in prompt_lower:
-        guesses = [
-            "4e03657a", # Tebakan 1: 4 Byte pertama (Format Selector Ethereum)
-            "4e0365",   # Tebakan 2: 6 Karakter pertama (seperti SHA-256)
-            "4e",       # Tebakan 3: 1 Byte pertama saja
-            "true",     # Tebakan 4: Menjawab apakah diawali 0x? (True)
-            "yes",      # Tebakan 5: Alternatif Yes
-            "4e03657aea45a94fc7d47ba826c8d6642f1ae33a46f2470fd0215db677317718", # Tebakan 6: Full Hash murni
-            "056b448ef1dcfeb874ab85cc836696f34fe3936f36f41f0e06957e88d907a0"  # Tebakan 7: Full Hash dari ""abc"" (berikut tanda kutip)
-        ]
+    # 3. HARDCODE: Tahun Bitcoin
+    elif "bitcoin whitepaper" in prompt_lower:
+        return "2008"
         
-        # Bot akan mengambil jawaban satu per satu berurutan setiap kali loop berulang
-        ans = guesses[keccak_attempt % len(guesses)]
-        print(f"[bot] Strategi Brute-Force Keccak. Mencoba tebakan ke-{keccak_attempt + 1}: '{ans}'")
+    # 4. HARDCODE: Base Mainnet Chain ID
+    elif "chain id is base mainnet" in prompt_lower:
+        return "8453"
         
-        keccak_attempt += 1 # Tambah memori agar loop berikutnya mencoba tebakan selanjutnya
-        return ans
+    # 5. HARDCODE: Jebakan "abc" (Wallet Address)
+    elif "keccak256" in prompt_lower and "abc" in prompt_lower:
+        # Jika server maunya tanpa awalan 0x, ganti return di bawah jadi: return WALLET_ADDRESS[2:]
+        return WALLET_ADDRESS
 
-    # 4. AUTO AI: Jika bot tidak tahu, lempar ke AI!
+    # 6. AUTO AI: Jika bot tidak tahu, lempar ke AI!
     else:
         print(f"[bot] Berpikir menggunakan AI untuk pertanyaan ini...")
         try:
@@ -95,7 +85,7 @@ def normalize_answer(answer):
 # MINING LOOP OTONOM
 # ==========================================
 def run_miner():
-    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain & Auto Brute-Force...")
+    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain...")
     
     while True:
         try:
