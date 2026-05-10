@@ -3,7 +3,8 @@ import hashlib
 import time
 import re
 import os
-import google.generativeai as genai  # <-- Tambahan baru
+from google import genai # <-- Menggunakan library baru
+from google.genai import types
 
 # ==========================================
 # KONFIGURASI SESUAI soul.md & AI
@@ -21,12 +22,9 @@ API_HEADERS = {
     "Content-Type": "application/json"
 }
 
-# --- KONFIGURASI OTAK AI ---
-# Nanti kita taruh GEMINI_API_KEY di setting Railway
-GEMINI_KEY = os.getenv("GEMINI_API_KEY", "TARUH_API_KEY_GEMINI_KAMU_DISINI_JIKA_TIDAK_PAKAI_RAILWAY_VAR")
-genai.configure(api_key=GEMINI_KEY)
-# Pakai model flash karena paling cepat untuk bot
-ai_model = genai.GenerativeModel('gemini-1.5-flash') 
+# --- KONFIGURASI OTAK AI BARU ---
+# Pastikan GEMINI_API_KEY sudah terpasang di Variables Railway
+client = genai.Client() # Library baru otomatis mencari GEMINI_API_KEY di environment
 
 # ==========================================
 # LOGIKA PENYELESAIAN PUZZLE (HYBRID)
@@ -34,7 +32,7 @@ ai_model = genai.GenerativeModel('gemini-1.5-flash')
 def solve_puzzle(prompt_text):
     prompt_lower = prompt_text.lower()
     
-    # 1. HARDCODE: Untuk kriptografi murni (AI kadang salah hash)
+    # 1. HARDCODE: Untuk kriptografi murni
     if "sha-256 hash of the empty string" in prompt_lower and "6 hex" in prompt_lower:
         hash_result = hashlib.sha256(b"").hexdigest()
         return hash_result[:6] 
@@ -43,7 +41,6 @@ def solve_puzzle(prompt_text):
     else:
         print(f"[bot] Berpikir menggunakan AI untuk pertanyaan ini...")
         try:
-            # Instruksi ketat agar AI hanya menjawab to the point tanpa basa-basi
             ai_prompt = f"""
             You are a competitive puzzle solver. Read the following puzzle/trivia question and provide ONLY the direct answer.
             Do not include any punctuation, explanation, or conversational text. 
@@ -53,7 +50,11 @@ def solve_puzzle(prompt_text):
             Answer:
             """
             
-            response = ai_model.generate_content(ai_prompt)
+            # Cara baru memanggil Gemini
+            response = client.models.generate_content(
+                model='gemini-2.5-flash', # Menggunakan model terbaru
+                contents=ai_prompt,
+            )
             ai_answer = response.text.strip()
             return ai_answer
             
@@ -62,7 +63,6 @@ def solve_puzzle(prompt_text):
             return "unknown_answer"
 
 def normalize_answer(answer):
-    """Aturan dari soul.md: lowercase, trimmed, single-spaced"""
     answer = answer.lower().strip()
     answer = re.sub(r'\s+', ' ', answer)
     return answer
@@ -71,7 +71,7 @@ def normalize_answer(answer):
 # MINING LOOP OTONOM
 # ==========================================
 def run_miner():
-    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (Gemini)...")
+    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (GenAI terbaru)...")
     
     while True:
         try:
@@ -99,7 +99,6 @@ def run_miner():
             p_prompt = puzzle.get("prompt")
             print(f"\n[puzzle] id={p_id} prompt='{p_prompt}'")
             
-            # --- AI BEKERJA DI SINI ---
             raw_answer = solve_puzzle(p_prompt)
             final_answer = normalize_answer(raw_answer)
             print(f"[solve] Jawaban ditemukan: '{final_answer}'")
