@@ -54,8 +54,12 @@ def solve_puzzle(prompt_text):
     # 6. HARDCODE: Shor's Algorithm
     elif "shors algorithm threatens" in prompt_lower:
         return "rsa"
+        
+    # 7. HARDCODE: Hexadecimal dari 255
+    elif "hex value of decimal 255" in prompt_lower:
+        return "ff"
 
-    # 7. AUTO AI: Jika bot tidak tahu, lempar ke AI!
+    # 8. AUTO AI: Jika bot tidak tahu, lempar ke AI!
     else:
         print(f"[bot] Berpikir menggunakan AI untuk pertanyaan ini...")
         try:
@@ -68,9 +72,9 @@ def solve_puzzle(prompt_text):
             Answer:
             """
             
-            # MENGGUNAKAN MODEL STABIL TERBARU DENGAN LIMIT BESAR
+            # MENGGUNAKAN MODEL LITE TERBARU (Gratis dan Kuota Raksasa!)
             response = client.models.generate_content(
-                model='gemini-1.5-flash-8b', 
+                model='gemini-2.5-flash-lite', 
                 contents=ai_prompt,
             )
             ai_answer = response.text.strip()
@@ -89,7 +93,7 @@ def normalize_answer(answer):
 # MINING LOOP OTONOM
 # ==========================================
 def run_miner():
-    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (Gemini 2.0 Flash)...")
+    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (Gemini 2.5 Flash Lite)...")
     
     while True:
         try:
