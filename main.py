@@ -49,10 +49,13 @@ def solve_puzzle(prompt_text):
         
     # 5. HARDCODE: Jebakan "abc" (Wallet Address)
     elif "keccak256" in prompt_lower and "abc" in prompt_lower:
-        # Jika server maunya tanpa awalan 0x, ganti return di bawah jadi: return WALLET_ADDRESS[2:]
         return WALLET_ADDRESS
 
-    # 6. AUTO AI: Jika bot tidak tahu, lempar ke AI!
+    # 6. HARDCODE: Shor's Algorithm
+    elif "shors algorithm threatens" in prompt_lower:
+        return "rsa"
+
+    # 7. AUTO AI: Jika bot tidak tahu, lempar ke AI!
     else:
         print(f"[bot] Berpikir menggunakan AI untuk pertanyaan ini...")
         try:
@@ -65,8 +68,9 @@ def solve_puzzle(prompt_text):
             Answer:
             """
             
+            # MENGGUNAKAN MODEL STABIL TERBARU DENGAN LIMIT BESAR
             response = client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-2.0-flash', 
                 contents=ai_prompt,
             )
             ai_answer = response.text.strip()
@@ -85,7 +89,7 @@ def normalize_answer(answer):
 # MINING LOOP OTONOM
 # ==========================================
 def run_miner():
-    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain...")
+    print(f"🚀 Memulai Agent '{AGENT_NAME}' dengan AI Brain (Gemini 2.0 Flash)...")
     
     while True:
         try:
